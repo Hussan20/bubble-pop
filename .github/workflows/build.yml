@@ -1,0 +1,33 @@
+name: Build APK
+on:
+  push:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: unzip -o bubble_pop_flutter.zip
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - name: Build
+        working-directory: bubble_pop
+        run: |
+          mkdir -p ~/.android && cp android_res/debug.keystore ~/.android/debug.keystore
+          flutter create --platforms=android --org com.bubblepop --project-name bubble_pop .
+          flutter pub get
+          dart run tool/setup_android.dart
+          flutter build apk --release
+          cp build/app/outputs/flutter-apk/app-release.apk ../bubble-pop.apk
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: Bubble Pop ${{ github.run_number }}
+          files: bubble-pop.apk
